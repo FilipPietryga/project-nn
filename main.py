@@ -1,25 +1,26 @@
-import cv2
-import numpy as np
-import os
-from matplotlib import pyplot as plt
-import time
+import cv2 
 import mediapipe as mp
+import numpy as np
+mp_drawing  = mp.solutions.drawing_utils
+mp_pose = mp.solutions.pose
 
-cap = 0
-
-def capture():
-  print("inside capture()")
-  cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(0)
+with mp_pose.Pose(min_detection_confidence=5, min_tracking_confidence=0.5) as pose:
   while cap.isOpened():
-    returned, frame = cap.read()
-    cv2.imshow('OpenCV feed', frame)
-    if cv2.waitKey(10) & 0xFF == ord('q'):
-      break
+    ret, frame = cap.read()
     
-def postCapture():
-  cap.release()
-  cv2.destroyAllWindows()
-  
+    image = cv2.cvtColor(frame, cv2.COLOR_BAYER_BGR2RGB)
+    image.flags.writable = False
 
-capture()
-postCapture()
+    result = pose.process(image)
+    
+    image.flags.writable = True
+    image = cv2.cvtColor(frame, cv2.COLOR_BAYER_RGB2BGR)
+    
+    cv2.imshow("", frame)    
+    
+    if cv2.waitKey(10) & 0xFF == ord("q"):
+      break
+  
+cap.release()
+cv2.destroyAllWindows()
