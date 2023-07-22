@@ -66,11 +66,11 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
             #print(angle_top)
 
             # Curl counter logic
-            if angle_top < 5:
-              stage = "top"
-            elif angle_top > 25:
-              if stage =="top":
-                stage="bottom"
+            if angle_top < 5 and angle_bottom < 5:
+              stage = "started"
+            elif angle_top > 25 and angle_bottom > 25:
+              if stage =="started":
+                stage="finished"
                 jacks += 1
                 print(jacks)
                        
