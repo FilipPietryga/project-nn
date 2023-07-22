@@ -5,6 +5,7 @@ mp_drawing  = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 
 jacks = 0
+stage = "top"
 
 def calculate_angle(a,b,c):
     a = np.array(a) # First
@@ -54,17 +55,24 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
             angle_top = calculate_angle(shoulder, elbow, wrist)
             angle_bottom = calculate_angle(hips, knees, ankles)
 
-            
+
             # Visualize angle
-            cv2.putText(image, str(angle), 
-                           tuple(np.multiply(elbow, [640, 480]).astype(int)), 
+            cv2.putText(image, str(angle_top),
+                           tuple(np.multiply(elbow, [640, 480]).astype(int)),
                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
                                 )
-            
+
+
+            #print(angle_top)
+
             # Curl counter logic
-            if angle_top > 100 and angle_bottom > 100:
-              jacks += 1
-              print(jacks)
+            if angle_top < 5:
+              stage = "top"
+            elif angle_top > 25:
+              if stage =="top":
+                stage="bottom"
+                jacks += 1
+                print(jacks)
                        
         except:
             pass
