@@ -4,7 +4,7 @@ import numpy as np
 mp_drawing  = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 
-from PyQt5.QtWidgets import QApplication, QWidget, QGridLayout, QLabel, QPushButton
+from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox, QLabel, QPushButton
 
 jacks = 0
 stage = "top"
@@ -123,21 +123,36 @@ def calculate_angle(a,b,c):
 #     app = QApplication(sys.argv)
 #     okno = Okno()
 #     sys.exit(app.exec_())
-    
-jacks = 0
-    
+
+
 from PyQt5 import QtGui
 from PyQt5.QtWidgets import QWidget, QApplication, QLabel, QVBoxLayout, QPushButton, QGridLayout
 from PyQt5.QtGui import QPixmap
 import sys
 import cv2
-from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt, QThread
+from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt, QThread, QObject
 import numpy as np
+    
+jacks = 0
+app = 0
+etykieta2 = 0
 
+class OtherClass(QObject):
+    valueUpdated = pyqtSignal(int)
+
+    def method(self):
+          self.valueUpdated.emit(jacks)
+          
+          
+otherclass = 0
+    
 class VideoThread(QThread):
     change_pixmap_signal = pyqtSignal(np.ndarray)
 
     def run(self):
+        global jacks
+        global otherclass
+        global etykieta2
         cap = cv2.VideoCapture(0)
         with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
           while cap.isOpened():
@@ -189,11 +204,11 @@ class VideoThread(QThread):
                   if stage =="started":
                     stage="finished"
                     jacks += 1
+                    otherclass.method()
                     print(jacks)
                             
             except:
                 pass
-            
             
             # Render detections
             mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS,
@@ -211,7 +226,18 @@ class VideoThread(QThread):
         cv2.destroyAllWindows()
 
 class App(QWidget):
+        
+    def handleValueUpdated(self, value):
+        self.vbox.removeWidget(self.etykieta2)
+        self.vbox.removeWidget(self.guzik)
+        self.etykieta2 = QLabel(str(value))
+        self.vbox.addWidget(self.etykieta2)
+        self.vbox.addWidget(self.guzik)
+        self.repaint()
+
     def __init__(self):
+        global jacks
+        global otherclass
         super().__init__()
         self.setWindowTitle("Qt live label demo")
         self.disply_width = 640
@@ -221,20 +247,27 @@ class App(QWidget):
         self.image_label.resize(self.disply_width, self.display_height)
         # create a text label
         
-        etykieta1 = QLabel("Liczba pajacykow:" + str(jacks), self)
-        guzik = QPushButton("resetuj liczbe pajacykow")
+        self.etykieta1 = QLabel("Liczba pajacykow: ", self)
+        self.etykieta2 = QLabel(str(jacks))
+        
+        otherclass = OtherClass(self)
+        otherclass.valueUpdated.connect(self.handleValueUpdated)
+        
+        self.guzik = QPushButton("resetuj liczbe pajacykow")
+        self.guzik.clicked.connect(self.resetujPajacyki)
 
         self.resize(300, 100)
         self.setWindowTitle("Aplikacja do zliczania pajacykow z uzyciem AI")
         self.show()
 
         # create a vertical box layout and add the two labels
-        vbox = QVBoxLayout()
-        vbox.addWidget(self.image_label)
-        vbox.addWidget(etykieta1)
-        vbox.addWidget(guzik)
+        self.vbox = QVBoxLayout()
+        self.vbox.addWidget(self.image_label)
+        self.vbox.addWidget(self.etykieta1)
+        self.vbox.addWidget(self.etykieta2)
+        self.vbox.addWidget(self.guzik)
         # set the vbox layout as the widgets layout
-        self.setLayout(vbox)
+        self.setLayout(self.vbox)
 
         # create the video capture thread
         self.thread = VideoThread()
@@ -257,6 +290,23 @@ class App(QWidget):
         convert_to_Qt_format = QtGui.QImage(rgb_image.data, w, h, bytes_per_line, QtGui.QImage.Format_RGB888)
         p = convert_to_Qt_format.scaled(self.disply_width, self.display_height, Qt.KeepAspectRatio)
         return QPixmap.fromImage(p)
+      
+    def resetujPajacyki(self, event):
+        global jacks
+        global app
+        global etykieta2
+        global otherclass
+        odp = QMessageBox.question(
+            self, 'Komunikat',
+            "Czy na pewno chcesz zresetowac pajacyki?",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+
+        if odp == QMessageBox.Yes:
+            jacks = 0
+            print(jacks)
+            otherclass.method()
+        else:
+            None
     
 if __name__=="__main__":
     app = QApplication(sys.argv)
